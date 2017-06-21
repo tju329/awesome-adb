@@ -4,7 +4,7 @@ ADB，即 [Android Debug Bridge](https://developer.android.com/studio/command-li
 
 持续更新中，欢迎提 PR 和 Issue 补充指正，觉得有用的可以将 [此 GitHub 仓库](https://github.com/mzlogin/awesome-adb) Star 收藏备用。
 
-**注：**有部分命令的支持情况可能与 Android 系统版本及定制 ROM 的实现有关。
+**注：** 有部分命令的支持情况可能与 Android 系统版本及定制 ROM 的实现有关。
 
 Other languages: [:gb: English](./README.en.md)
 
@@ -77,6 +77,8 @@ Other languages: [:gb: English](./README.en.md)
     * [分辨率](#分辨率)
     * [屏幕密度](#屏幕密度-1)
     * [显示区域](#显示区域)
+    * [关闭 USB 调试模式](#关闭-usb-调试模式)
+    * [状态栏和导航栏的显示隐藏](#状态栏和导航栏的显示隐藏)
 * [实用功能](#实用功能)
     * [屏幕截图](#屏幕截图)
     * [录制屏幕](#录制屏幕)
@@ -134,15 +136,24 @@ $ adb devices
 List of devices attached
 cf264b8f	device
 emulator-5554	device
+10.129.164.6:5555	device
 ```
 
-输出里的 `cf264b8f` 和 `emulator-5554` 即为 serialNumber。比如这时想指定 `cf264b8f` 这个设备来运行 adb 命令获取屏幕分辨率：
+输出里的 `cf264b8f`、`emulator-5554` 和 `10.129.164.6:5555` 即为 serialNumber。
+
+比如这时想指定 `cf264b8f` 这个设备来运行 adb 命令获取屏幕分辨率：
 
 ```sh
 adb -s cf264b8f shell wm size
 ```
 
-遇到多设备/模拟器的情况均使用这几个参数为命令指定目标设备，下文中为简化描述，不再重复。
+又如想给 `10.129.164.6:5555` 这个设备安装应用（*这种形式的 serialNumber 格式为 `<IP>:<Port>`，一般为无线连接的设备或 Genymotion 等第三方 Android 模拟器*）：
+
+```sh
+adb -s 10.129.164.6:5555 install test.apk
+```
+
+**遇到多设备/模拟器的情况均使用这几个参数为命令指定目标设备，下文中为简化描述，不再重复。**
 
 ### 启动/停止
 
@@ -225,6 +236,7 @@ adb devices
 List of devices attached
 cf264b8f	device
 emulator-5554	device
+10.129.164.6:5555	device
 ```
 
 输出格式为 `[serialNumber] [state]`，serialNumber 即我们常说的 SN，state 有如下几种：
@@ -235,7 +247,7 @@ emulator-5554	device
 
 * `no device` —— 没有设备/模拟器连接。
 
-以上输出显示当前已经连接了两台设备/模拟器，`cf264b8f` 与 `emulator-5554` 分别是它们的 SN。从 `emulator-5554` 这个名字可以看出它是一个 Android 模拟器。
+以上输出显示当前已经连接了三台设备/模拟器，`cf264b8f`、`emulator-5554` 和 `10.129.164.6:5555` 分别是它们的 SN。从 `emulator-5554` 这个名字可以看出它是一个 Android 模拟器，而 `10.129.164.6:5555` 这种形为 `<IP>:<Port>` 的 serialNumber 一般是无线连接的设备或 Genymotion 等第三方 Android 模拟器。
 
 常见异常输出：
 
@@ -376,6 +388,21 @@ adb disconnect <device-ip-address>
    这里的 `<device-ip-address>` 就是上一步中找到的设备 IP 地址。
 
    如果能看到 `connected to <device-ip-address>:5555` 这样的输出则表示连接成功。
+
+*节注一：*
+
+有的设备，比如小米 5S + MIUI 8.0 + Android 6.0.1 MXB48T，可能在第 5 步之前需要重启 adbd 服务，在设备的终端模拟器上运行：
+
+```sh
+restart adbd
+```
+
+如果 restart 无效，尝试以下命令：
+
+```sh
+start adbd
+stop adbd
+```
 
 ## 应用管理
 
@@ -525,8 +552,8 @@ Failure [INSTALL_FAILED_ALREADY_EXISTS]
 | INSTALL\_FAILED\_TEST\_ONLY                        | 应用是 test-only 的，但安装时没有指定 `-t` 参数                          |                                                                             |
 | INSTALL\_FAILED\_CPU\_ABI\_INCOMPATIBLE            | 包含不兼容设备 CPU 应用程序二进制接口的 native code                      |                                                                             |
 | INSTALL\_FAILED\_MISSING\_FEATURE                  | 应用使用了设备不可用的功能                                               |                                                                             |
-| INSTALL\_FAILED\_CONTAINER\_ERROR                  | sdcard 访问失败                                                          | 确认 sdcard 可用，或者安装到内置存储                                        |
-| INSTALL\_FAILED\_INVALID\_INSTALL\_LOCATION        | 不能安装到指定位置                                                       | 切换安装位置，添加或删除 `-s` 参数                                          |
+| INSTALL\_FAILED\_CONTAINER\_ERROR                  | 1. sdcard 访问失败; 2. 应用签名与 ROM 签名一致，被当作内置应用           | 1. 确认 sdcard 可用，或者安装到内置存储; 2. 打包时不与 ROM 使用相同签名     |
+| INSTALL\_FAILED\_INVALID\_INSTALL\_LOCATION        | 1. 不能安装到指定位置; 2. 应用签名与 ROM 签名一致，被当作内置应用        | 1. 切换安装位置，添加或删除 `-s` 参数; 2. 打包时不与 ROM 使用相同签名       |
 | INSTALL\_FAILED\_MEDIA\_UNAVAILABLE                | 安装位置不可用                                                           | 一般为 sdcard，确认 sdcard 可用或安装到内置存储                             |
 | INSTALL\_FAILED\_VERIFICATION\_TIMEOUT             | 验证安装包超时                                                           |                                                                             |
 | INSTALL\_FAILED\_VERIFICATION\_FAILURE             | 验证安装包失败                                                           |                                                                             |
@@ -1034,7 +1061,7 @@ Android 系统的日志分为两部分，底层的 Linux 内核日志输出到 /
 
 #### 按级别过滤日志
 
-Android 的日志分为如下几个级别：
+Android 的日志分为如下几个优先级（priority）：
 
 * V —— Verbose（最低，输出得最多）
 * D —— Debug
@@ -1054,7 +1081,11 @@ adb logcat *:W
 
 会将 Warning、Error、Fatal 和 Silent 日志输出。
 
+（**注：** 在 macOS 下需要给 `*:W` 这样以 `*` 作为 tag 的参数加双引号，如 `adb logcat "*:W"`，不然会报错 `no matches found: *:W`。）
+
 #### 按 tag 和级别过滤日志
+
+`<filter-spec>` 可以由多个 `<tag>[:priority]` 组成。
 
 比如，命令：
 
@@ -1581,23 +1612,40 @@ adb shell cat /system/build.prop
 
 输出里还包括一些其它有用的信息，它们也可通过 `adb shell getprop <属性名>` 命令单独查看，列举一部分属性如下：
 
-| 属性名                          | 含义                     |
-|---------------------------------|--------------------------|
-| ro.build.version.sdk            | SDK 版本                 |
-| ro.build.version.release        | Android 系统版本         |
-| ro.build.version.security_patch | Android 安全补丁程序级别 |
-| ro.product.model                | 型号                     |
-| ro.product.brand                | 品牌                     |
-| ro.product.name                 | 设备名                   |
-| ro.product.board                | 处理器型号               |
-| ro.product.cpu.abilist          | CPU 支持的 abi 列表      |
-| persist.sys.isUsbOtgEnabled     | 是否支持 OTG             |
-| dalvik.vm.heapsize              | 每个应用程序的内存上限   |
-| ro.sf.lcd_density               | 屏幕密度                 |
+| 属性名                          | 含义                          |
+|---------------------------------|-------------------------------|
+| ro.build.version.sdk            | SDK 版本                      |
+| ro.build.version.release        | Android 系统版本              |
+| ro.build.version.security_patch | Android 安全补丁程序级别      |
+| ro.product.model                | 型号                          |
+| ro.product.brand                | 品牌                          |
+| ro.product.name                 | 设备名                        |
+| ro.product.board                | 处理器型号                    |
+| ro.product.cpu.abilist          | CPU 支持的 abi 列表[*节注一*] |
+| persist.sys.isUsbOtgEnabled     | 是否支持 OTG                  |
+| dalvik.vm.heapsize              | 每个应用程序的内存上限        |
+| ro.sf.lcd_density               | 屏幕密度                      |
+
+*节注一：*
+
+一些小厂定制的 ROM 可能修改过 CPU 支持的 abi 列表的属性名，如果用 `ro.product.cpu.abilist` 属性名查找不到，可以这样试试：
+
+```sh
+adb shell cat /system/build.prop | grep ro.product.cpu.abi
+```
+
+示例输出：
+
+```sh
+ro.product.cpu.abi=armeabi-v7a
+ro.product.cpu.abi2=armeabi
+```
 
 ## 修改设置
 
-**注：**修改设置之后，运行恢复命令有可能显示仍然不太正常，可以运行 `adb reboot` 重启设备，或手动重启。
+**注：** 修改设置之后，运行恢复命令有可能显示仍然不太正常，可以运行 `adb reboot` 重启设备，或手动重启。
+
+修改设置的原理主要是通过 settings 命令修改 /data/data/com.android.providers.settings/databases/settings.db 里存放的设置值。
 
 ### 分辨率
 
@@ -1647,11 +1695,75 @@ adb shell wm overscan 0,0,0,200
 adb shell wm overscan reset
 ```
 
+### 关闭 USB 调试模式
+
+命令：
+
+```sh
+adb shell settings put global adb_enabled 0
+```
+
+恢复：
+
+用命令恢复不了了，毕竟关闭了 USB 调试 adb 就连接不上 Android 设备了。
+
+去设备上手动恢复吧：「设置」-「开发者选项」-「Android 调试」。
+
+### 状态栏和导航栏的显示隐藏
+
+本节所说的相关设置对应 Cyanogenmod 里的「扩展桌面」。
+
+命令：
+
+```sh
+adb shell settings put global policy_control <key-values>
+```
+
+`<key-values>` 可由如下几种键及其对应的值组成，格式为 `<key1>=<value1>:<key2>=<value2>`。
+
+| key                   | 含义       |
+|-----------------------|------------|
+| immersive.full        | 同时隐藏   |
+| immersive.status      | 隐藏状态栏 |
+| immersive.navigation  | 隐藏导航栏 |
+| immersive.preconfirms | ?          |
+
+这些键对应的值可则如下值用逗号组合：
+
+| value          | 含义         |
+|----------------|--------------|
+| `apps`         | 所有应用     |
+| `*`            | 所有界面     |
+| `packagename`  | 指定应用     |
+| `-packagename` | 排除指定应用 |
+
+例如：
+
+```sh
+adb shell settings put global policy_control immersive.full=*
+```
+
+表示设置在所有界面下都同时隐藏状态栏和导航栏。
+
+```sh
+adb shell settings put global policy_control immersive.status=com.package1,com.package2:immersive.navigation=apps,-com.package3
+```
+
+表示设置在包名为 `com.package1` 和 `com.package2` 的应用里隐藏状态栏，在除了包名为 `com.package3` 的所有应用里隐藏导航栏。
+
 ## 实用功能
 
 ### 屏幕截图
 
-命令：
+截图保存到电脑：
+
+```sh
+adb exec-out screencap -p > sc.png
+```
+
+如果 adb 版本较老，无法使用 `exec-out` 命令，这时候建议更新 adb 版本。无法更新的话可以使用以下麻烦点的办法：
+
+先截图保存到设备里：
 
 ```sh
 adb shell screencap -p /sdcard/sc.png
@@ -1672,13 +1784,33 @@ adb pull /sdcard/sc.png
 
 实测如果指定文件名以 `.png` 结尾时可以省略 -p 参数；否则需要使用 -p 参数。如果不指定文件名，截图文件的内容将直接输出到 stdout。
 
-直接一行命令截图并保存到电脑的方法：
+另外一种一行命令截图并保存到电脑的方法：
+
+*Linux 和 Windows*
 
 ```sh
 adb shell screencap -p | sed "s/\r$//" > sc.png
 ```
 
-这个方法需要用到 sed 命令，在 Linux 和 Mac 下直接就有，在 Windows 下 Git 安装目录的 bin 文件夹下也有。如果确实找不到该命令，可以下载 [sed for Windows](http://gnuwin32.sourceforge.net/packages/sed.htm) 并将 sed.exe 所在文件夹添加到 PATH 环境变量里。
+*Mac OS X*
+
+```sh
+adb shell screencap -p | gsed "s/\r$//" > sc.png
+```
+
+这个方法需要用到 gnu sed 命令，在 Linux 下直接就有，在 Windows 下 Git 安装目录的 bin 文件夹下也有。如果确实找不到该命令，可以下载 [sed for Windows](http://gnuwin32.sourceforge.net/packages/sed.htm) 并将 sed.exe 所在文件夹添加到 PATH 环境变量里。
+
+而在 Mac 下使用系统自带的 sed 命令会报错：
+
+```sh
+sed: RE error: illegal byte sequence
+```
+
+需要安装 gnu-sed，然后使用 gsed 命令：
+
+```sh
+brew install gnu-sed
+```
 
 ### 录制屏幕
 
@@ -2083,15 +2215,9 @@ taskkill /PID 1548
 
 ## 致谢
 
-感谢朋友们无私的分享与补充。
+感谢朋友们无私的分享与补充（排名不分先后）。
 
-* [zxning](https://github.com/zxning)
-* [linhua55](https://github.com/linhua55)
-* [codeskyblue](https://github.com/codeskyblue)
-* [seasonyuu](https://github.com/seasonyuu)
-* [fan123199](https://github.com/fan123199)
-* [zhEdward](https://github.com/zhEdward)
-* [0x8BADFOOD](https://github.com/0x8BADFOOD)
+[zxning](https://github.com/zxning)，[linhua55](https://github.com/linhua55)，[codeskyblue](https://github.com/codeskyblue)，[seasonyuu](https://github.com/seasonyuu)，[fan123199](https://github.com/fan123199)，[zhEdward](https://github.com/zhEdward)，[0x8BADFOOD](https://github.com/0x8BADFOOD)，[keith666666](https://github.com/keith666666)。
 
 ## 参考链接
 
